@@ -1,0 +1,423 @@
+#include <iostream>
+#include <unistd.h>
+#include <cstdlib>
+#include <ctime>
+#include <vector>
+#include <math.h>
+#include <queue>
+using namespace std;
+
+int a,b,threshold;
+float X,Y;
+
+struct Location{
+    float x;
+    float y;
+};
+
+struct WRSN{
+    int X;  //width
+    int Y;  //length
+    int N;  //number of sensor nodes
+    float E;//能耗比（充电车消耗电量比上网络接受充电电量）
+    float Na;//存活比率
+};
+
+struct N{
+    Location location;
+
+    int ID;
+    float x;
+    float y;
+
+    float e;    //residual energy of N
+    float q;    //consumption rate of node N
+
+    float qr;   //energy receiving rate of node
+};
+
+struct WCV{
+    Location location;
+    float x;
+    float y;
+
+    float E;    //residual energy of W
+    float qc;   //energy consumption rate of charging
+    float qm;   //energy consumption rate of moving
+    float v;    //traveling speed of WCV
+};
+
+struct Request{
+    int ID;
+    float x;    //x坐标
+    float y;    //y坐标
+    float e;    //剩余能量
+    float q;    //消耗速率
+    float t;    //到达时间
+};
+
+struct ServiceQueue{
+    struct Request *data;
+    int front;//队头指针
+    int rear;//队尾指针
+    int size;//队列大小
+    float te;//最早到的时间
+    float tl;//最晚到的时间
+    float dn;//最近的节点
+    float df;//最远的节点
+};
+
+struct ServiceQueue*initQueue(int size){
+    struct ServiceQueue*q=(struct ServiceQueue*)malloc(sizeof(struct ServiceQueue));
+    q->data=(struct Request*)malloc(size*sizeof(struct Request));
+    q->front=0;
+    q->rear=0;
+    q->size=size;
+    return q;
+}
+
+bool isempty(struct ServiceQueue*q){
+    return q->front == q->rear;
+}
+
+bool isFull(struct ServiceQueue*q){
+    return (q->rear+1)%q->size==q->front;
+}
+
+bool enqueue(struct ServiceQueue*q,struct Request r){
+    if(isFull(q)){
+        return false;
+    }
+    q->data[q->rear]=r;
+    q->rear=(q->rear+1)%q->size;
+    return true;
+}
+
+bool dequeue(struct ServiceQueue*q,struct Request*r){
+    if(isempty(q)){
+        return false;
+    }
+    *r=q->data[q->front];
+    q->front=(q->front+1)%q->size;
+    return true;
+}
+
+void destroyQueue(struct ServiceQueue*q){
+    free(q->data);
+    free(q);
+}
+
+void printRequest(struct Request r){
+    printf("Request ID: %d\n",r.ID);
+    printf("Node position:(%.2f,%.2f)\n",r.x,r.y);
+    printf("Remaining nodes:%d\n",r.e);
+    printf("Energy rate:%.2f\n",r.q);
+    printf("Send time:%.2f\n",r.t);
+}
+
+
+/*
+struct ServiceQueue{
+    Request req;
+    float te;
+    float tl;
+    float dn;
+    float df;
+};
+*/
+
+//初始化网络
+void initWRSN(WRSN& W,float x,float y,int n) {
+    W.X = x;
+    W.Y = y;
+    W.N = n;
+    W.E=0;
+    W.Na=0;
+}
+
+void initWCV(WCV& W,WRSN W1,float qc,float qm,float v) {
+    W.x=W1.X/2;
+    W.y=W1.Y/2;
+    W.E = 100;
+    W.qc = qc;
+    W.qm = qm;
+    W.v = v;
+}
+
+float rand_float (float a, float b) {
+    // 生成一个a到b之间的浮点数
+    return (rand () / (RAND_MAX + 1.0)) * (b - a) + a;
+}
+
+void initN(WRSN W,N node[]) {
+
+    for (int i = 0; i < W.N; i++) {
+        srand(time(NULL));
+        float x = rand_float(0.0, 1.0);
+        float y = rand_float(0.0, 1.0);
+        node[i].ID = i;
+        node[i].x = x;
+        node[i].y = y;
+        node[i].e = 100;
+        node[i].q = rand_float(0.009, 0.014);
+        node[i].qr = rand_float(0.083, 0.167);
+    }
+
+}
+
+void CnIReq(Request req[],ServiceQueue &SQ,WCV &W,WRSN &W1) {
+    for (int i = 0; i < sizeof(SQ); i++) {
+        float ti = req[i].e / req[i].q;
+    }
+    for (int i = 0; i < sizeof(SQ); i++) {
+        float dij = sqrt((req[i].x - W.x) * (req[i].x - W.x) + (req[i].y - W.y) * (req[i].y - W.y));
+    }
+    for (int i = 0; i < sizeof(SQ); i++) {
+        float ti = req[i].e / req[i].q;
+        float dij = sqrt((req[i].x - W.x) * (req[i].x - W.x) + (req[i].y - W.y) * (req[i].y - W.y));
+        float ntij = ((ti - SQ.te) * W1.N) / (SQ.tl - SQ.te);
+        float ndij = ((dij - SQ.dn) * W1.N) / (SQ.df - SQ.dn);
+    }
+
+    /*
+     * sort queue by ti
+     * sort queue by di,j
+     * get time and distance priority
+     * end for
+     */
+    /*
+     * for 1 to sizeof queue
+     * calculate time&distance priority
+     * end for
+     */
+
+    /*
+     * sort queue by t&d priority
+     */
+}
+
+/*
+ * 计算到请求节点的时间，如果到节点的时间内小车需要充电或者说节点即将死亡（不用去充电）/小车自身的电量无法将之充满（小车开过去消耗电量后、小车充完电之后不足以返航）
+ * 选择队列中优先级次优的节点判断是否可以完成，，如果遍历队列都没有
+ *
+ *
+ */
+
+bool checkChargeWCV(){
+
+}
+
+void updateNode(N node, float t){
+    t = 0.5;
+    node.e  = node.e - t*node.q;
+}
+//计算时间优先级
+float time()
+
+float time(Location Nlocation,Location Wlocation) {
+    float time_priority;
+    time_priority =
+            ((Node.e / Node.q - ServiceQueue.te) * Nodenum) /
+            (ServiceQueue.tl - ServiceQueue.te);
+    return time_priority;
+}
+//计算空间优先级
+float distance(Car , Node) {
+    //.......
+    float d = sqrt((Car.x - Node.x) * (Car.x - Node.x) +
+            (Car.y - Node.y) * (Car.y - Node.y));
+    float distance_priority;
+    distance_priority =
+            ((d - ServiceQueue.dn) * Nodenum) /
+            (ServiceQueue.df - ServiceQueue.dn);
+    return distance_priority;
+}
+//计算混合优先级
+float score(float distance,float time) {
+    return a * time +
+    b * distance +
+    log10(time * distance + 1);
+}
+
+
+ServiceQueue updateQue(WCV car){
+    for(int i=0;i<N;i++){
+//        判断当前节点剩余电量小于充电阈值
+        if(NODE[i].E <= threshold){
+            Queue que = new  Queue;
+            que.add(node);
+        }
+        Que.sort(que, Opeartor);
+    }
+
+    return que;
+
+    //比较器，如果混合优先级数值较小，则放置于队首
+    bool new Opeartor(Node n1, Node n2){
+        n1_car_distance = distance(n1.location,car.currentLocation);
+        n1_car_time = time(n1.location,car.currentLocation);
+        n2_car_distance = distance(n2.location,car.currentLocation);
+        n2_car_time = time(n2.location,car.currentLocation);
+        float final_score_n1 = score(n1_car_distance, n1_car_time);
+        float final_score_n2 = score(n2_car_distance, n2_car_time);
+
+        if(final_score_n1<=final_score_n2){
+            true
+        }else{
+            false;
+        }
+
+    };
+
+}
+
+
+
+for(i = 0; i < N; i++){
+    updateNode(NODEE[i]);
+}
+
+bool checkCanWaitDeadLine(WCV Car, N node) {
+    //Distance(Car , Node)
+    float d = sqrt((Car.x - node.x) * (Car.x - node.x) +
+                   (Car.y - node.y) * (Car.y - node.y));
+    if (node.e - (d / Car.v) * node.q > 0) {//充电设备到达前不会死亡
+        return true;
+    } else
+        return false;
+}
+
+bool fakeCharge(WCV Car, N Node) {
+    float d = sqrt((Car.x - Node.x) * (Car.x - Node.x) +
+                   (Car.y - Node.y) * (Car.y - Node.y));
+    float d1 = sqrt((X - Node.x) * (X - Node.x) +
+                    (Y - Node.y) * Y - Node.y));
+    //error in move
+    //error in charge
+    //error after charge
+    if (Car.E - (d / Car.v) * Car.qm - //error in move
+    Car.qc * (Node.em - Node.e) / Node.qc - //error in charge
+    (d1 / Car.v) * Car.qm < 0) {    //error after charge
+        return false;
+    } else
+        return true;
+}
+
+bool checkCanCharge(Car ,Node){
+    Car.E
+    Node.E
+    fakeCharge
+
+}
+
+void realCharge(Car,Node){
+    Car.LOCATION
+    Node.E
+    time
+    for(){
+        Update(Node,time)
+    }
+
+}
+
+/*
+ * 更新位置
+ */
+void move(WCV& W,N node) {
+    W.x=node.x;
+    W.y=node.y;
+    float distance = sqrt((W.x - node.x) * (W.x - node.x) + (W.y - node.y) * (W.y - node.y));
+    float t = distance / W.v;
+    float E = W.E;
+    float qm = W.qm;
+    W.E = E - qm * t;
+}
+
+/*
+ * 充电时间拨到后面，再考虑请求队列
+ */
+void charge(WCV& W,N node) {
+    float qc = W.qc;
+    float E = W.E;
+    float t = (100 - node.e) / node.qr;
+    W.E = E - t * qc;
+}
+
+bool needCharge(WCV& W) {
+    if (W.E < 40) {
+        return true;
+    } else return false;
+}
+
+queue<Request> q1;
+int main() {
+    float el = 40;
+    float ql=100;
+    WRSN W;
+    WCV wcv;
+    float X = 0, Y = 0, n = 0;
+    float qc = 0, qm = 0, v = 0;
+    cout << "input X,Y,N\n";
+    cin >> X >> Y >> n;
+    initWRSN(W, X, Y, n);
+    cout << "input qc,qm,v\n";
+    cin >> qc >> qm >> v;
+    initWCV(wcv, W, qc, qm, v);
+    N node[100];
+    initN(W, node);
+    struct ServiceQueue *q = initQueue(20);
+
+
+    /*
+     * 每0.5秒查看一下队列
+     * 计算队列的优先级，取队首，check是否可以完成任务，不能就遍历，直到可以去充电或者都不行回去补充
+     */
+
+    while (1) {//每隔0.5秒，接收信号，更新队列
+        system("cls");
+        for (int j = 0; j < n; j++) {
+            if (node[j].e < el) {//接收请求
+                Request r;
+                time_t t = time(NULL);
+                double d = (double) t;
+                r.t = t;
+                r.x = node[j].x;
+                r.y = node[j].y;
+                r.e = node[j].e;
+                r.q = node[j].q;
+                r.ID = node[j].ID;
+                enqueue(q, r);//将r入队
+            }
+        }
+
+        bool isCharge
+        for (int i = 0; i < q->rear; i++) {
+            isCharge = false;
+            //TODO:排序的话用顺序队列比较方便\
+            故而需要再调整一下存储结构\
+            按照时间t排序\
+            按照距离d排序\
+            获取时间优先级和空间优先级\                 10S
+            计算时空优先级再按照时空优先级排序\
+            取队首作为服务的对象                20s{
+            isCharge = true
+        }
+            move(wcv,node[0]);
+            charge(wcv,node[0]);
+            //TODO:这里的node[0]应当是取队首的，今晚修改
+
+            printf("Na=%.2f\n",W.Na);
+            printf("E=%.2f\n",W.E);
+            if(){
+                i+10;
+                i-0,5
+            }
+
+
+
+        }
+        usleep(500000);
+    }
+    cout << "Hello world";
+    return 0;
+}

@@ -1,0 +1,3 @@
+C:/Users/22306/CLionProjects/WSN/cmake-build-debug/CMakeFiles/WSN.dir
+C:/Users/22306/CLionProjects/WSN/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/22306/CLionProjects/WSN/cmake-build-debug/CMakeFiles/rebuild_cache.dir
