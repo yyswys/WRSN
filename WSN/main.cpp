@@ -23,15 +23,16 @@ int main() {
     //vector<N> node[n];
     N node[n];
     initWRSN(W, X, Y, n);//初始化节点
-    initWCV(Car, W, qc, qm, v);
+    initWCV(Car, W, qc, qm, v);//初始化小车
     initN(n, node, "C://Users//22306//CLionProjects//WSN//node40//node1.txt");
-    for (int i = 0; i < n; i++) {
+    cout<<Car.E<<endl;
+    /*for (int i = 0; i < n; i++) {
         cout << node[i].x << " " << node[i].y << " " << node[i].q << " " << node[i].e << "\n";
         //cout << node[i].q << " ";
     }
-    cout << "\n";
+    cout << "\n";*/
 
-    for (int i = 0; i < 10000; i += 1) {
+    for (int i = 0; i < 12000; i++) {
 
         int flag = 0;
         for (int j = 0; j < n; j++) {//向后拨
@@ -45,6 +46,10 @@ int main() {
                 r.t = i;
                 r.ID = node[j].ID;
                 servicequeue[flag++] = r;
+                float dtemp = sqrt((Car.x - node[j].x) * (Car.x - node[j].x) +
+                                   (Car.y - node[j].y) * (Car.y - node[j].y));
+                Car.dn = (Car.dn > dtemp) ? dtemp : Car.dn;
+                Car.df = (Car.df < dtemp) ? dtemp : Car.df;
                 Car.te = (Car.te > r.t) ? i : Car.te;
                 Car.tl = (Car.tl < r.t) ? i : Car.tl;
             }
@@ -64,19 +69,22 @@ int main() {
                 }
             }
         }
+
         int flag1 = 0;
         float ta = 0;
         float tc = 0;
 
 
         do {
+
             if (NeedCharge(Car)) {//如果小车得充电了，优先保证小车寿命
+                cout<<"Need Charge,Energy of Car is :"<<Car.E<<endl;
                 ChargeCar(Car, tc);
                 for (int m = 0; m < n; m++) {
-                    updateNode(node[m], tc);
+                    updateNode(node[m], tc-0.5);
                 }
-                i += tc;
-                cout << "i = " << i << endl;
+                cout<<"Charge Car costs "<<tc<<endl;
+                i += (tc-0.5);
             }
             if (checkCanWaitDeadLine(Car, node[servicequeue[flag1].ID]) &&
                 fakeCharge(Car, node[servicequeue[flag1].ID])) {//如果可以充
@@ -88,10 +96,10 @@ int main() {
 
 
                 for (int m = 0; m < n; m++) {
-                    updateNode(node[m], ta);
+                    updateNode(node[m], ta-0.5);
                 }
-                i +=  ta;
-                cout << "i = " << i << endl;
+                i +=  (ta-0.5);
+                cout << "Charge Node costs " << ta << endl;
                 for (int m = 0; m < flag - 1; m++) {
                     servicequeue[m] = servicequeue[m + 1];
                 }

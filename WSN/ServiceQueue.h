@@ -38,7 +38,7 @@ float distance(WCV Car,N Node,int n)
 float score(float d,float t) {
     float a = 1;
     float b = 1;
-    return a * t + b * t + log10(t * d + 1);
+    return a * t + b * d + log10(t * d + 1);
 }
 
 bool op(N N1,N N2,WCV Car,int n) {
@@ -48,7 +48,8 @@ bool op(N N1,N N2,WCV Car,int n) {
     float n2_car_time = time(Car, N2, n);
     float final_score_n1 = score(n1_car_distance, n1_car_time);
     float final_score_n2 = score(n2_car_distance, n2_car_time);
-    if (final_score_n1 <= final_score_n2) {
+
+    if (final_score_n1 < final_score_n2) {
         return true;
     } else {
         return false;

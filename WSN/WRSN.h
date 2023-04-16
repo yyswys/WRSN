@@ -51,12 +51,12 @@ bool needCharge(N node) {
     } else return false;
 }
 void updateNode(N &node,float t) {
-    if(node.alive) {
-        node.e = node.e - t * node.q;
-        node.t+=t;
+    node.e = node.e - t * node.q;
+    if(node.e<0){
+        node.alive=0;
     }
-    else if (node.e < 0) {
-        node.alive = 0;
+    else if(node.alive) {
+        node.t+=t;
     }
     return;
 }

@@ -34,17 +34,19 @@ void initWCV(WCV& W,WRSN W1,float qc,float qm,float v) {
     W.Ereal=0;
 
 }
-bool NeedCharge(WCV Car){
-    if(Car.E<=15000){
+bool NeedCharge(WCV &Car){
+    if(Car.E<15000){
+        //std::cout<<Car.E<<std::endl;
         return true;
     }
     else
-        return true;
+        return false;
 }
 void ChargeCar(WCV &Car,float &t1){
     float d1 = sqrt((150 - Car.x) * (150 - Car.x) +
                     (75 - Car.y) * (75 - Car.y));
     float t=d1/Car.v;
+    Car.E = 50000;
     Car.Ereal+=t*Car.qm;
     Car.Eall+=t*Car.qm;
     t1 = t;
