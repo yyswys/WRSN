@@ -1,0 +1,3 @@
+C:/Users/22306/CLionProjects/WRSN-ultra/cmake-build-debug/CMakeFiles/WRSN_ultra.dir
+C:/Users/22306/CLionProjects/WRSN-ultra/cmake-build-debug/CMakeFiles/edit_cache.dir
+C:/Users/22306/CLionProjects/WRSN-ultra/cmake-build-debug/CMakeFiles/rebuild_cache.dir
