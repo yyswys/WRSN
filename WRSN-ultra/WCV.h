@@ -115,9 +115,24 @@ int fakeCharge(WCV&Car,Location l,N node[],Grid G){
     return bestP;
 }
 
-void realCharge()
-{
+void realCharge(WCV&Car,N &node,Location P,float t) {
+    float tm = sqrt((Car.x - P.x) * (Car.x - P.x) +
+                    (Car.y - P.y) * (Car.y - P.y)) / Car.v;
+    Car.x = P.x;
+    Car.y = P.y;
+    float E = Car.E;
+    float qc = Car.qc;
+    float Qc = calculatePk(Car, node);
 
+    float tc = (900 - node.e) / Qc;
+
+
+//    float Ec = (900-Node.e)/Node.qr;
+//    float tc  = Ec/qc;
+    t = tc + tm;
+
+    Car.Eall += tc * qc + tm * Car.qm;
+
+    Car.E = E - (tc * qc + tm * Car.qm);
 }
-
 #endif //WRSN_ULTRA_WCV_H

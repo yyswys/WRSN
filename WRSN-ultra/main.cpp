@@ -48,10 +48,10 @@ int main() {
          */
         for(){
             getPoints();
-            Location bestPosition;
+            Location bestP;
             if( ){
                 fakeCharge();
-                bestP? updatebestPosition
+                bestU? updatebestP
 
             }
         }
