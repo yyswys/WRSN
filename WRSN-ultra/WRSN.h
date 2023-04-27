@@ -5,9 +5,12 @@
 #include "fstream"
 #include "math.h"
 #include "vector"
+#include <list>
+using namespace std;
 #ifndef WRSN_ULTRA_WRSN_H
 #define WRSN_ULTRA_WRSN_H
 
+//调参
 float alpha;
 float betta;
 
@@ -15,6 +18,8 @@ struct Location{
     float x;
     float y;
 };
+
+vector<Location> Gridlist;
 
 struct WRSN{
     int X;  //width
@@ -59,14 +64,16 @@ void initN(int n,N node[],std::string filename){
 }
 
 struct Grid{
-    std::vector<Location> l;
+    vector<Location> l;
     int n;
     float length;
     int nofGrid;
 };
 //floor向下取整
 //ceil向上取整
-void initGrid(WRSN&W,float length,Grid&G){
+
+//二维数组，存储充电位置坐标
+void initGrid(WRSN&W,float length,Grid&G){//所有格子的坐标
     //划分网格，根据边长划分，得到网格数量及充电位置数量
     float x = W.X;
     float y = W.Y;
@@ -74,7 +81,10 @@ void initGrid(WRSN&W,float length,Grid&G){
     G.n = (floor(x/length)+1)*(floor(y/length)+1);
     for(int i=0;i<ceil(x/length);i++){
         for(int j=0;ceil(j<y/length);j++){
-            l
+            Location temp;
+            temp.x = 0+i*length;
+            temp.y = 0+j*length;
+            G.l.push_back(temp);
         }
     }
 }
@@ -94,6 +104,10 @@ void updateNode(N &node,float t) {
     }
     return;
 }
+
+
+
+
 
 
 #endif //WRSN_ULTRA_WRSN_H
