@@ -3,12 +3,16 @@
 #include "WRSN.h"
 #include "math.h"
 #include "ServiceQueue.h"
+#include <vector>
 using namespace std;
 
 int main() {
     WRSN W;
     WCV Car;
-    Request servicequeue[10];
+    //TODO:改链表
+    //Request servicequeue[15];
+    //Request servicequeue[50];
+    vector<Request> servicequeue;
     float X, Y;
     int n;
     float qc, qm, v;
@@ -25,18 +29,21 @@ int main() {
     initWRSN(W, X, Y, n);//初始化节点
     initWCV(Car, W, qc, qm, v);//初始化小车
     initN(n, node, "C://Users//22306//CLionProjects//WSN//node40//node1.txt");
-    cout<<Car.E<<endl;
+    cout << Car.E << endl;
     /*for (int i = 0; i < n; i++) {
         cout << node[i].x << " " << node[i].y << " " << node[i].q << " " << node[i].e << "\n";
         //cout << node[i].q << " ";
     }
     cout << "\n";*/
 
-    for (int i = 0; i < 12000; i++) {
-
-        int flag = 0;
-        for (int j = 0; j < n; j++) {//向后拨
-            updateNode(node[j], 0.5);
+    /*
+     * 从零开始计时
+     */
+    for (int i = 0; i < 3000; i++) {
+        //GetQueue(Car,node,servicequeue,i,1);
+        //这个for循环更新更新节点状态及请求队列
+        for (int j = 0; j < n; j++) {//更新节点状态
+            updateNode(node[j], 1);//向后拨
             if (needCharge(node[j])) {//需要充电 加到队列中
                 Request r;
                 r.x = node[j].x;
@@ -45,7 +52,8 @@ int main() {
                 r.q = node[j].q;
                 r.t = i;
                 r.ID = node[j].ID;
-                servicequeue[flag++] = r;
+                //servicequeue[flag++] = r;
+                servicequeue.push_back(r);
                 float dtemp = sqrt((Car.x - node[j].x) * (Car.x - node[j].x) +
                                    (Car.y - node[j].y) * (Car.y - node[j].y));
                 Car.dn = (Car.dn > dtemp) ? dtemp : Car.dn;
@@ -56,11 +64,12 @@ int main() {
         }
 
         //sort(node.begin(),node.end(),op);
-        // 如果使用vector，直接用sort排序可用
-        if (flag >= 2) {
-            for (int k = 0; k < flag; k++) {//排序
-                for (int j = 0; j < flag - k; j++) {
-                    if (!op(node[servicequeue[j].ID], node[servicequeue[j + 1].ID], Car, n)) {
+        // 如果请求队列元素多于两个则进行排序
+        if (servicequeue.size() >= 2) {
+            for (int k = 0; k < servicequeue.size(); k++) {//排序
+                for (int j = 0; j < servicequeue.size() - k; j++) {
+                    if (//!op(node[servicequeue[j].ID], node[servicequeue[j + 1].ID], Car, n)) {
+                            !op(node[servicequeue.at(j).ID], node[servicequeue.at(j).ID], Car, n)) {
                         Request r;
                         r = servicequeue[j + 1];
                         servicequeue[j + 1] = servicequeue[j];
@@ -71,43 +80,129 @@ int main() {
         }
 
         int flag1 = 0;
+
         float ta = 0;
         float tc = 0;
-
-
-        do {
-
-            if (NeedCharge(Car)) {//如果小车得充电了，优先保证小车寿命
-                cout<<"Need Charge,Energy of Car is :"<<Car.E<<endl;
+        /*
+         * do while第一版，会有segmentation error
+         * 尝试第二版 直接while
+         * 如果小车需要充电优先保证小车寿命
+         * 如果充电了更新状态、更新请求队列
+         */
+        //do {
+            while(i<3000&&flag1<servicequeue.size()){
+            if (NeedChargeW(Car)) {//如果小车得充电了，优先保证小车寿命
+                cout << "Need Charge,Energy of Car is :" << Car.E << endl;
                 ChargeCar(Car, tc);
+
                 for (int m = 0; m < n; m++) {
-                    updateNode(node[m], tc-0.5);
+                    updateNode(node[m], tc);
+                    //TODO:更新节点后需要考虑是否需要更新队列
+                    if (needCharge(node[m])) {//需要充电 加到队列中
+                        Request r;
+                        r.x = node[m].x;
+                        r.y = node[m].y;
+                        r.e = node[m].e;
+                        r.q = node[m].q;
+                        r.t = i;
+                        r.ID = node[m].ID;
+                        //servicequeue[flag++] = r;
+                        servicequeue.push_back(r);
+                        float dtemp = sqrt((Car.x - node[m].x) * (Car.x - node[m].x) +
+                                           (Car.y - node[m].y) * (Car.y - node[m].y));
+                        Car.dn = (Car.dn > dtemp) ? dtemp : Car.dn;
+                        Car.df = (Car.df < dtemp) ? dtemp : Car.df;
+                        Car.te = (Car.te > r.t) ? i : Car.te;
+                        Car.tl = (Car.tl < r.t) ? i : Car.tl;
+                    }
                 }
-                cout<<"Charge Car costs "<<tc<<endl;
-                i += (tc-0.5);
+                cout << "Charge Car costs " << tc << endl;
+                i += tc;
             }
-            if (checkCanWaitDeadLine(Car, node[servicequeue[flag1].ID]) &&
-                fakeCharge(Car, node[servicequeue[flag1].ID])) {//如果可以充
-                realCharge(Car, node[servicequeue[flag1].ID], ta);
-                td = td + sqrt((Car.x - node[servicequeue[flag1].ID].x) *
-                               (Car.x - node[servicequeue[flag1].ID].x) +
-                               (Car.y - node[servicequeue[flag1].ID].y) *
-                               (Car.y - node[servicequeue[flag1].ID].y)) / Car.v + i - servicequeue[flag1].t;
 
-
-                for (int m = 0; m < n; m++) {
-                    updateNode(node[m], ta-0.5);
+            if (servicequeue.size() >= 2) {
+                for (int k = 0; k < servicequeue.size(); k++) {//排序
+                    for (int j = 0; j < servicequeue.size() - k; j++) {
+                        if (//!op(node[servicequeue[j].ID], node[servicequeue[j + 1].ID], Car, n)) {
+                                !op(node[servicequeue[j].ID], node[servicequeue[j+1].ID], Car, n)) {
+                            Request r;
+                            r = servicequeue[j + 1];
+                            servicequeue[j + 1] = servicequeue[j];
+                            servicequeue[j] = r;
+                        }
+                    }
                 }
-                i +=  (ta-0.5);
+            }
+
+            //TODO: Here,Segmentation fault
+            cout<<flag1<<endl;
+            /*
+             * 如果队首可以服务，则服务队首，否则flag1++，直到可以服务的那个
+             */
+            if (//checkCanWaitDeadline(Car, node[servicequeue[flag1].ID]) &&
+                //checkCanWaitDeadLine(Car,node,servicequeue[flag1].ID)&&
+                     !servicequeue.empty()&&checkCanWaitDeadline(Car, node[servicequeue.at(flag1).ID]) &&
+                    fakeCharge(Car, node[servicequeue.at(flag1).ID])) {//如果可以充
+                realCharge(Car, node[servicequeue.at(flag1).ID], ta);
+                i+=ta;
+                td = td + sqrt((Car.x - node[servicequeue.at(flag1).ID].x) *
+                               (Car.x - node[servicequeue.at(flag1).ID].x) +
+                               (Car.y - node[servicequeue.at(flag1).ID].y) *
+                               (Car.y - node[servicequeue.at(flag1).ID].y)) / Car.v + i - servicequeue.at(flag1).t;
+                /*
+                 * 充完电后更新状态
+                 */
+                for (int m = 0; m < n; m++) {
+                    updateNode(node[m], ta);
+
+                    if (needCharge(node[m])) {//需要充电 加到队列中
+                        Request r;
+                        r.x = node[m].x;
+                        r.y = node[m].y;
+                        r.e = node[m].e;
+                        r.q = node[m].q;
+                        r.t = i;
+                        r.ID = node[m].ID;
+                        //servicequeue[flag++] = r;
+                        servicequeue.push_back(r);
+                        float dtemp = sqrt((Car.x - node[m].x) * (Car.x - node[m].x) +
+                                           (Car.y - node[m].y) * (Car.y - node[m].y));
+                        Car.dn = (Car.dn > dtemp) ? dtemp : Car.dn;
+                        Car.df = (Car.df < dtemp) ? dtemp : Car.df;
+                        Car.te = (Car.te > r.t) ? i : Car.te;
+                        Car.tl = (Car.tl < r.t) ? i : Car.tl;
+                    }
+                }
+                if (servicequeue.size() >= 2) {
+                    for (int k = 0; k < servicequeue.size(); k++) {//排序
+                        for (int j = 0; j < servicequeue.size() - k; j++) {
+                            if (//!op(node[servicequeue[j].ID], node[servicequeue[j + 1].ID], Car, n)) {
+                                    !op(node[servicequeue.at(j).ID], node[servicequeue.at(j).ID], Car, n)) {
+                                Request r;
+                                r = servicequeue[j + 1];
+                                servicequeue[j + 1] = servicequeue[j];
+                                servicequeue[j] = r;
+                            }
+                        }
+                    }
+                }
+
                 cout << "Charge Node costs " << ta << endl;
-                for (int m = 0; m < flag - 1; m++) {
+                //TODO:更新队列
+/*                for (int m = 0; m < servicequeue.size() - 1; m++) {
                     servicequeue[m] = servicequeue[m + 1];
                 }
-                flag -= 1;
+
+                servicequeue.size() -= 1;*/
+                /*
+                 * 排出队首元素
+                 */
+                servicequeue.erase(servicequeue.begin()+flag1);
 
             } else
                 flag1++;
-        } while (flag1 < flag);
+        }
+            //while ( i <= 3000 && flag1 < servicequeue.size());
 
     }
 
@@ -122,9 +217,9 @@ int main() {
         }
     }
 
-    cout << "Ta/N = " << tall / n << "\n";
-    cout << "Eall/Ereal = " << Car.Eall / Car.Ereal << "\n";
-    cout << "Na/N = " << cnt / n << endl;
+    cout << "average alive time Ta/N = " << tall / n << "\n";
+    cout << "energy usage Eall/Ereal = " << Car.Eall / Car.Ereal << "\n";
+    cout << "alive percent Na/N = " << cnt / n << endl;
     cout << "hello world\n";
     return 0;
 }
